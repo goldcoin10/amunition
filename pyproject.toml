@@ -1,0 +1,23 @@
+[project]
+name = "amunition"
+version = "0.1.0"
+description = "a(muni)tion is a transit app running on the bay's 511 api"
+readme = "README.md"
+authors = [
+    { name = "goldcoin10", email = "vwebaccount@protonmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "python-dotenv>=1.2.4",
+    "pythondialog>=3.5.3",
+    "rapidfuzz>=3.14.6",
+    "requests>=2.34.2",
+    "rich>=15.0.0",
+]
+
+[project.scripts]
+amunition = "amunition.ui:main"
+
+[build-system]
+requires = ["uv_build>=0.13.5,<0.14.0"]
+build-backend = "uv_build"

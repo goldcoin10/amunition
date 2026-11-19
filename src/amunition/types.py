@@ -1,0 +1,1 @@
+type TransitList = list[list[str]]
