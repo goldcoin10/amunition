@@ -21,15 +21,19 @@ help_doc: str = """[white]A([red]muni[/])tion commands:
     [cyan]exit[/]: exits A([red]muni[/])tion
     [cyan]quit[/]: same as exit
     [cyan]get[/] <op> <routes/stops>: gets that agencies routes/stops
-    [cyan]line-get[/] <op> <line number> <stops/name/mode>: gets the stops/name/mode of the line queried
+    [cyan]line-get[/] <op> <line number> <stops/name/mode>: gets the info of the line queried
+    [cyan]stop-get[/] <op> <stop number>: gets the info of the line queried
+    [cyan]search-stops[/] <op> <query>: gets the stops tied to the query
     [cyan]operators[/]: lists valid operators
-    [cyan]pager[/]: turns on pager for next command only"""
+    [cyan]pager/less/more[/]: turns on pager for next command only
+    [cyan]about[/]: credits"""
+
 welcome: str = """[white]Welcome to A([red]muni[/])tion!
-(Type '[cyan]help[/]' to see commands)"""
+(Type '[cyan]help[/]' to see commands, '[cyan]about[/]' for credits)"""
 
 about: str = """A([red]muni[/])tion is powered by 511.org data, and is not affiliated with the SFMTA, MTC, or any other transit authority.
 
-(c) 2026 goldcoin10 (LICENCE is available at https://github.com/goldcoin10/amunition)
+(c) 2026 goldcoin10 (LICENSE is available at https://github.com/goldcoin10/amunition)
 """
 
 console = Console()
@@ -43,7 +47,7 @@ def sh_511(pager: bool = False) -> None:
         sh_511()
     else:
         term_arr: list[str] = shlex.split(raw)
-        if term_arr[0] == "pager":
+        if term_arr[0] == "pager" or term_arr[0] == "less" or term_arr[0] == "more":
             sh_511(True)
         else:
             result = check_command(term_arr)
@@ -64,7 +68,9 @@ def check_command(command: list[str]) -> str:
         sys.exit(0)
     elif command[0] == "operators":
         for id, name in get_operator_list().items():
-            ret = "\n".join(f"{id} {name}")
+            ret = f"{ret}\n{id} {name}"
+    elif command[0] == "about":
+        return about
     elif command[0] == "get":
         if len_com < 2:
             return("too few arguments")
@@ -115,7 +121,43 @@ def check_command(command: list[str]) -> str:
                     ret = mode
         else:
             return "wrong syntax"
+    elif command[0] == "stop-get":
+        if len_com < 3:
+            return "too few arguments"
 
+        operator_id = command[1].upper()
+        if operator_id not in get_operator_list():
+            return "operator not found"
+
+        operator_stops = get_operator_stops(operator_id)
+        stop_id = command[2]
+        valid_stops = {num.upper(): (num, nom) for num, nom, _ in operator_stops}
+        if stop_id.upper() not in valid_stops:
+            return "stop not found"
+
+        canonical_stop_id, stop_nom = valid_stops[stop_id.upper()]
+        ret = f"\n{ret}\n{display_sign(canonical_stop_id, operator_id)}"
+
+        if not ret.strip():
+            ret = f"\n{stop_nom} ({canonical_stop_id})\n\nNo upcoming departures."
+        else:
+            ret = f"\n{stop_nom} ({canonical_stop_id}){ret}"
+
+    elif command[0] == "search-stops":
+        if len_com < 3:
+            return "too few arguments"
+        
+        operator_id = command[1].upper()
+        if operator_id not in get_operator_list():
+            return "operator not found"
+
+        search: str = command[2]
+
+        stops = query(get_operator_stops(operator_id), search, 5)
+
+        for stop_id, stop_name in stops:
+            ret = f"{ret}\n{stop_id} {stop_name}"
+            
     else:
         return "wrong syntax"
     return ret
@@ -123,13 +165,15 @@ def check_command(command: list[str]) -> str:
 def cls() -> None:
     print("\033c", end="", flush=True) # stupid ass hack
 
-def display_sign(stop_id: str, private_code: str) -> None:
+def display_sign(stop_id: str, private_code: str) -> str:
     nb_list = get_next_bus(stop_id, private_code)
     line_color: str = "cyan bold"
+    ret: str = ""
     for stop_num, stop_name, next_time, line_num, line_name, terminus in nb_list:
         if private_code == "SF":
             line_color = MUNI_METRO.get(line_num, "cyan bold")
-        print(f"[{line_color}]{line_num}[/] [yellow]{line_name}[/] to [green]{terminus}[/] {next_time}")
+        ret = f"{ret}\n[{line_color}]{line_num}[/] [yellow]{line_name}[/] to [green]{terminus}[/] {next_time}"
+    return ret
 
 def debug():
     print("---DEBUG---")

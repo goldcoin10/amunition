@@ -116,9 +116,7 @@ def get_route_stops(line_id: str, private_code: str) -> TransitList:
 
     return ret
 
-def bus_time_to_minutes(dep_time: str | None) -> str | None:
-    if dep_time == None:
-        return None
+def bus_time_to_minutes(dep_time: str) -> str:
     cur_dt: datetime = datetime.now(timezone.utc)
     dep_dt: datetime = datetime.fromisoformat(dep_time)
     mins: int = int((dep_dt - cur_dt).total_seconds() // 60)
@@ -128,6 +126,7 @@ def bus_time_to_minutes(dep_time: str | None) -> str | None:
         ret = str(f"in {mins} minutes")
     else:
         ret = str(f"in {mins} minute")
+
     return ret
 
 def query(db: TransitList, query: str, max_r: int = 50) -> TransitList:
