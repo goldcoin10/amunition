@@ -22,7 +22,7 @@ help_doc: str = """[white]A([red]muni[/])tion commands:
     [cyan]quit[/]: same as exit
     [cyan]get[/] <op> <routes/stops>: gets that agencies routes/stops
     [cyan]line-get[/] <op> <line number> <stops/name/mode>: gets the info of the line queried
-    [cyan]stop-get[/] <op> <stop number>: gets the info of the line queried
+    [cyan]stop-get[/] <op> <stop number>: gets the info of the stop queried
     [cyan]search-stops[/] <op> <query>: gets the stops tied to the query
     [cyan]operators[/]: lists valid operators
     [cyan]pager/less/more[/]: turns on pager for next command only

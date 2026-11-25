@@ -1,5 +1,7 @@
 # A(muni)tion
 
+![A(muni)tion logo](https://raw.githubusercontent.com/goldcoin10/amunition/refs/heads/master/assets/amunition.png)
+
 predict buses from your terminal with ease
 
 ## Introduction
