@@ -2,7 +2,7 @@ import sys
 import shlex
 from rich import print
 from rich.console import Console
-from . import api_key
+from . import *
 from .api import *
 
 MUNI_METRO: dict[str, str] = {
@@ -26,14 +26,16 @@ help_doc: str = """[white]A([red]muni[/])tion commands:
     [cyan]search-stops[/] <op> <query>: gets the stops tied to the query
     [cyan]operators[/]: lists valid operators
     [cyan]pager/less/more[/]: turns on pager for next command only
-    [cyan]about[/]: credits"""
+    [cyan]about[/]: credits
+    [cyan]search-lines[/] <op> <query>: searches for the route number tied to that query
+    [cyan]key[/] <your-key>: sets your 511 key"""
 
-welcome: str = """[white]Welcome to A([red]muni[/])tion!
+welcome: str = f"""[white]Welcome to A([red]muni[/])tion ({VERSION})!
 (Type '[cyan]help[/]' to see commands, '[cyan]about[/]' for credits)"""
 
-about: str = """A([red]muni[/])tion is powered by 511.org data, and is not affiliated with the SFMTA, MTC, or any other transit authority.
-
-(c) 2026 goldcoin10 (LICENSE is available at https://github.com/goldcoin10/amunition)
+about: str = f"""[white]A[/]([red]muni[/])tion is powered by 511.org data, and is not affiliated with the SFMTA, MTC, or any other transit authority.
+(c) 2026 goldcoin10 (LICENSE is available at https://raw.githubusercontent.com/goldcoin10/amunition/refs/heads/master/LICENSE)
+(you are on version {VERSION})
 """
 
 console = Console()
@@ -73,7 +75,9 @@ def check_command(command: list[str]) -> str:
         return about
     elif command[0] == "get":
         if len_com < 2:
-            return("too few arguments")
+            return "too few arguments"
+        elif not api_key:
+            return "invalid api key"
 
         if command[1].upper() in get_operator_list():
             operator_id = command[1].upper()
@@ -94,6 +98,8 @@ def check_command(command: list[str]) -> str:
     elif command[0] == "line-get":
         if len_com < 4:
             return "too few arguments"
+        elif not api_key:
+            return "invalid api key"
 
         operator_id = command[1].upper()
         if operator_id not in get_operator_list():
@@ -124,6 +130,8 @@ def check_command(command: list[str]) -> str:
     elif command[0] == "stop-get":
         if len_com < 3:
             return "too few arguments"
+        elif not api_key:
+            return "invalid api key"
 
         operator_id = command[1].upper()
         if operator_id not in get_operator_list():
@@ -146,18 +154,58 @@ def check_command(command: list[str]) -> str:
     elif command[0] == "search-stops":
         if len_com < 3:
             return "too few arguments"
+        elif not api_key:
+            return "invalid api key"
         
         operator_id = command[1].upper()
         if operator_id not in get_operator_list():
             return "operator not found"
 
-        search: str = command[2]
+        search: str = " ".join(command[2:])
 
         stops = query(get_operator_stops(operator_id), search, 5)
 
-        for stop_id, stop_name in stops:
+        for stop_id, stop_name, *_ in stops:
             ret = f"{ret}\n{stop_id} {stop_name}"
-            
+
+    elif command[0] == "search-lines":
+        if len_com < 3:
+            return "too few arguments"
+        elif not api_key:
+            return "invalid api key"
+
+        operator_id = command[1].upper()
+        if operator_id not in get_operator_list():
+            return "operator not found"
+
+        search = " ".join(command[2:])
+        if operator_id == "SF":
+
+            # fuck you muni
+
+            lines = query(get_operator_routes(operator_id), search.upper(), 5)
+        else:
+            lines = query(get_operator_routes(operator_id), search, 5)
+
+        for line_id, line_name, _, _ in lines:
+            ret = f"{ret}\n{line_id} {line_name}"
+    elif command[0] == "key":
+        if len_com < 2:
+            if api_key:
+                return f"your api key is {api_key}"
+            else:
+                return "no api key found"
+        try:
+            operators_raw = requests.get("http://api.511.org/transit/operators", params={"api_key": command[1]}, timeout=10)
+            operators_raw.raise_for_status()
+        except Exception:
+            return "an error occured"
+        else:
+            with open(CONFIG, "w") as file:
+                file.write(f"KEY_511={command[1]}\n")
+            os.chmod(CONFIG, 0o600)
+            print("key has been changed successfully, exiting")
+            sys.exit(0)
     else:
         return "wrong syntax"
     return ret
@@ -178,7 +226,7 @@ def display_sign(stop_id: str, private_code: str) -> str:
 def debug():
     print("---DEBUG---")
     ro_list = get_operator_routes("BA")
-    for route_id, name, mode, opr in ro_list:
+    for route_id, name, mode, _ in ro_list:
         if mode == "OP":
             print(name)
         else:

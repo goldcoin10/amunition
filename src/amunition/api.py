@@ -80,10 +80,12 @@ def get_next_bus(stop_id: str, private_code: str) -> TransitList:
     for st in visits[:5]:
         journey = st.get("MonitoredVehicleJourney", {})
         call = journey.get("MonitoredCall", {})
-        if bus_time_to_minutes(call.get("ExpectedDepartureTime")) == None:
-            expected_departure_min = bus_time_to_minutes(call.get("AimedDepartureTime"))
-        else:
-            expected_departure_min = bus_time_to_minutes(call.get("ExpectedDepartureTime"))
+        expected_departure_min = ( bus_time_to_minutes(call.get("AimedDepartureTime"))
+        or bus_time_to_minutes(call.get("ExpectedDepartureTime")
+        or bus_time_to_minutes(call.get("AimedArrivalTime"))
+        or bus_time_to_minutes(call.get("AimedDepartureTime")))
+        or "Unknown"
+        )
         ret.append([
             str(stop_id),
             call.get("StopPointName").removeprefix("Metro "),
@@ -121,7 +123,7 @@ def bus_time_to_minutes(dep_time: str) -> str:
     dep_dt: datetime = datetime.fromisoformat(dep_time)
     mins: int = int((dep_dt - cur_dt).total_seconds() // 60)
     if mins < 0:
-        return "Departed"
+        return "has [bold cyan]Departed[/]"
     elif mins > 1 or mins == 0:
         ret = str(f"in {mins} minutes")
     else:
