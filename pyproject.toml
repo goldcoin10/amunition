@@ -1,6 +1,6 @@
 [project]
 name = "amunition"
-version = "0.1.0"
+version = "0.1.1"
 description = "a(muni)tion is a transit app running on the bay's 511 api"
 readme = "README.md"
 authors = [
